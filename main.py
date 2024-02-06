@@ -63,6 +63,9 @@ def login():
                 """,
                 (flask.request.remote_addr, int(time.time()))
             )
+            return flask.make_response("", 200)
+        else:
+            return flask.make_response("", 401)
 
 
 def is_auth(ip):
