@@ -1,0 +1,1 @@
+A very simple authentication server using OTP and an SQLite database. The program will generate an OTP code that can be scanned by an authenticator app and the program will save all users' ip addresses to the database.
