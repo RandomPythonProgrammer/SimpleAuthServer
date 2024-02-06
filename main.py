@@ -51,7 +51,7 @@ def index():
     return flask.render_template('login.html')
 
 
-@app.route('/login')
+@app.route('/login', methods=['POST'])
 def login():
     if not is_auth(flask.request.remote_addr):
         if flask.request.form['token'] == totp.now():
@@ -63,6 +63,7 @@ def login():
                 """,
                 (flask.request.remote_addr, int(time.time()))
             )
+            db.connection.commit()
             return flask.make_response("", 200)
         else:
             return flask.make_response("", 401)
