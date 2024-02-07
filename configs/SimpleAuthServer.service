@@ -1,0 +1,13 @@
+[Unit]
+Description=OTP IP Whitelist server
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/home/www-data/SimpleAuthServer/
+Environment=/home/www-data/SimpleAuthServer/bin/
+ExecStart=/home/www-data/SimpleAuthServer/bin/uwsgi --ini configs/simpleauthserver.ini
+
+[Install]
+WantedBy=multi-user.target
