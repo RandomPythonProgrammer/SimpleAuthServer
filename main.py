@@ -5,6 +5,44 @@ import pyotp
 import qrcode
 import flask
 import sqlite3
+import iptc
+
+server_ip = '127.0.0.1'
+
+def whitelist_port(ip, port, protocol):
+    prerouting = iptc.Chain(iptc.Table(iptc.Table.NAT), "PREROUTING")
+    rule1 = iptc.Rule()
+    rule1.protocol = protocol
+    rule1.src = ip
+    match1 = iptc.Match(rule1, protocol)
+    match1.dport = port
+    rule1.add_match(match1)
+    target1 = iptc.Target(rule1, "DNAT")
+    target1.to_destination = f"{server_ip}:{port}"
+    rule1.target = target1
+    prerouting.insert_rule(rule1)
+    postrouting = iptc.Chain(iptc.Table(iptc.Table.NAT), "POSTROUTING")
+    rule2 = iptc.Rule()
+    rule2.protocol = protocol
+    rule2.dst = ip
+    match2 = iptc.Match(rule2, protocol)
+    match2.dport = port
+    rule2.add_match(match2)
+    target2 = iptc.Target(rule2, "SNAT")
+    target2.to_source = f"{server_ip}:{port}"
+    rule2.target = target2
+    postrouting.insert_rule(rule2)
+
+def whitelist_ip(ip):
+    # TODO: minecraft server ports
+
+    # Test
+    whitelist_port(ip, 8000, 'tcp')
+    # Java
+    whitelist_port(ip, 25565, 'tcp')
+    # Bedrock
+    whitelist_port(ip, 19132, 'tcp')
+    whitelist_port(ip, 19133, 'udp')
 
 
 class DataBase:
@@ -23,6 +61,7 @@ class DataBase:
             );
             """
         )
+        # TODO: list through existing ips and whitelist them
         self.connection.commit()
 
 
@@ -63,6 +102,7 @@ def login():
                 """,
                 (flask.request.remote_addr, int(time.time()))
             )
+            whitelist_ip(flask.request.remote_addr)
             db.connection.commit()
             return flask.make_response("", 200)
         else:

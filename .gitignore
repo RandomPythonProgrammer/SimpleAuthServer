@@ -1,4 +1,8 @@
 /secrets
-database.db
 /venv
 /.idea
+*.sqlite
+*.db
+node_modules
+*.json
+*.log
