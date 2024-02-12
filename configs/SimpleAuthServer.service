@@ -3,7 +3,7 @@ Description=OTP IP Whitelist server
 After=network.target
 
 [Service]
-User=www-data
+User=simpleauth
 Group=www-data
 WorkingDirectory=/home/www-data/SimpleAuthServer/
 Environment=/home/www-data/SimpleAuthServer/bin/

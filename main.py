@@ -1,43 +1,29 @@
 import os
 import time
+import subprocess
 
 import pyotp
 import qrcode
 import flask
 import sqlite3
-import iptc
 
-server_ip = '127.0.0.1'
+# Set these
+# Also make a new unpriviliged user that can run sudo without password
+# Sudoers rule example `simpleauth ALL=(root) NOPASSWD: /usr/bin/iptables`
+# That runs this script
+minecraft_server_ip = '10.0.0.165'
+this_server_ip = '10.0.0.12'
+
 
 def whitelist_port(ip, port, protocol):
-    prerouting = iptc.Chain(iptc.Table(iptc.Table.NAT), "PREROUTING")
-    rule1 = iptc.Rule()
-    rule1.protocol = protocol
-    rule1.src = ip
-    match1 = iptc.Match(rule1, protocol)
-    match1.dport = port
-    rule1.add_match(match1)
-    target1 = iptc.Target(rule1, "DNAT")
-    target1.to_destination = f"{server_ip}:{port}"
-    rule1.target = target1
-    prerouting.insert_rule(rule1)
-    postrouting = iptc.Chain(iptc.Table(iptc.Table.NAT), "POSTROUTING")
-    rule2 = iptc.Rule()
-    rule2.protocol = protocol
-    rule2.dst = ip
-    match2 = iptc.Match(rule2, protocol)
-    match2.dport = port
-    rule2.add_match(match2)
-    target2 = iptc.Target(rule2, "SNAT")
-    target2.to_source = f"{server_ip}:{port}"
-    rule2.target = target2
-    postrouting.insert_rule(rule2)
+    p1 = subprocess.Popen(["sudo", "/usr/bin/iptables", "-t", "nat", "-A", "PREROUTING", "--src", ip, "-p", protocol, "--dport", f"{port}", "-j", "DNAT", "--to-destination", f"{minecraft_server_ip}:{port}"], stdout=subprocess.PIPE)
+    output1, err1 = p1.communicate()
+    #print(f"Out1: {output1}\nErr1: {err1}\nCmd: {p1.args}\n")
+    p2 = subprocess.Popen(["sudo", "/usr/bin/iptables", "-t", "nat", "-A", "POSTROUTING", "-p", protocol, "-d", minecraft_server_ip, "--dport", f"{port}", "-j", "SNAT", "--to-source", f"{this_server_ip}:{port}"], stdout=subprocess.PIPE)
+    output2, err2 = p2.communicate()
+    #print(f"Out2: {output2}\nErr2: {err2}\nCmd: {p2.args}\n")
 
 def whitelist_ip(ip):
-    # TODO: minecraft server ports
-
-    # Test
-    whitelist_port(ip, 8000, 'tcp')
     # Java
     whitelist_port(ip, 25565, 'tcp')
     # Bedrock
@@ -63,6 +49,10 @@ class DataBase:
         )
         # TODO: list through existing ips and whitelist them
         self.connection.commit()
+        for ip, in self.cursor.execute("SELECT ip FROM IP"):
+            print(f"Whitelisting: {ip}\n")
+            whitelist_ip(ip)
+        
 
 
 os.makedirs('secrets', exist_ok=True)
