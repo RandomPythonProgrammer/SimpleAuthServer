@@ -1,3 +1,4 @@
+import atexit
 import os
 import time
 import subprocess
@@ -38,20 +39,28 @@ class DataBase:
         self.connection = sqlite3.connect(os.path.join(curr_dir, 'database.db'), check_same_thread=False)
         self.cursor = self.connection.cursor()
 
-        self.cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS IP (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                ip TEXT,
-                time INTEGER
-            );
-            """
-        )
+        if not os.path.exists('init.lock'):
+            with open('init.lock', 'w'):
+                pass
+            self.cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS IP (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ip TEXT,
+                    time INTEGER
+                );
+                """
+            )
         # TODO: list through existing ips and whitelist them
-        self.connection.commit()
-        for ip, in self.cursor.execute("SELECT ip FROM IP"):
-            print(f"Whitelisting: {ip}\n")
-            whitelist_ip(ip)
+            self.connection.commit()
+            for ip, in self.cursor.execute("SELECT ip FROM IP"):
+                print(f"Whitelisting: {ip}\n")
+                whitelist_ip(ip)
+
+            def remove_lock():
+                os.remove('init.lock')
+
+            atexit.register(remove_lock)
         
 
 
